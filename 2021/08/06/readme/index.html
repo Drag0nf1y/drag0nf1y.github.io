@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+    
+  <meta name="description" content="Drag0nf1y" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>
+    Fluorescence - Detecting Kernel-Resident Malware in Clouds   (2019 RAID) 阅读 |  Drag0nf1y
+  </title>
+  <meta name="generator" content="hexo-theme-yilia-plus">
+  
+  <link rel="shortcut icon" href="/favicon.ico" />
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+  
+<script src="/js/pace.min.js"></script>
+
+
+  
+
+  
+
+</head>
+
+</html>
+
+<body>
+  <div id="app">
+    <main class="content">
+      <section class="outer">
+  <article id="post-readme" class="article article-type-post" itemscope
+  itemprop="blogPost" data-scroll-reveal>
+
+  <div class="article-inner">
+    
+    <header class="article-header">
+       
+<h1 class="article-title sea-center" style="border-left:0" itemprop="name">
+  Fluorescence - Detecting Kernel-Resident Malware in Clouds   (2019 RAID) 阅读
+</h1>
+  
+
+    </header>
+    
+
+    
+    <div class="article-meta">
+      <a href="/2021/08/06/readme/" class="article-date">
+  <time datetime="2021-08-06T14:19:08.694Z" itemprop="datePublished">2021-08-06</time>
+</a>
+      
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/%E7%A0%94%E7%A9%B6/">研究</a> / <a class="article-category-link" href="/categories/%E7%A0%94%E7%A9%B6/AI/">AI</a>
+  </div>
+
+      
+      
+<div class="word_count">
+    <span class="post-time">
+        <span class="post-meta-item-icon">
+            <i class="ri-quill-pen-line"></i>
+            <span class="post-meta-item-text"> 字数统计:</span>
+            <span class="post-count">7.3k字</span>
+        </span>
+    </span>
+
+    <span class="post-time">
+        &nbsp; | &nbsp;
+        <span class="post-meta-item-icon">
+            <i class="ri-book-open-line"></i>
+            <span class="post-meta-item-text"> 阅读时长≈</span>
+            <span class="post-count">26分钟</span>
+        </span>
+    </span>
+</div>
+
+      
+    </div>
+    
+
+    
+    
+    <div class="tocbot"></div>
+
+
+
+
+
+    
+
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+
+
+      
+
+      
+      <h1 id="Fluorescence-Detecting-Kernel-Resident-Malware-in-Clouds-2019-RAID-阅读"><a href="#Fluorescence-Detecting-Kernel-Resident-Malware-in-Clouds-2019-RAID-阅读" class="headerlink" title="Fluorescence: Detecting Kernel-Resident Malware in Clouds   (2019 RAID) 阅读"></a>Fluorescence: Detecting Kernel-Resident Malware in Clouds   (2019 RAID) 阅读</h1><h2 id="1-介绍"><a href="#1-介绍" class="headerlink" title="1 介绍"></a>1 介绍</h2><h3 id="1-1-恶意软件"><a href="#1-1-恶意软件" class="headerlink" title="1.1 恶意软件"></a>1.1 恶意软件</h3><p>Rootkit 是一种秘密计算机程序，旨在提供对计算机的持续特权访问，同时主动隐藏其存在。术语rootkit 是“root”和“kit”这两个词的联系。最初，rootkit 是一组工具，可实现对计算机或网络的管理员级别访问。Root 指的是 Unix 和 Linux 系统上的 Admin 帐户，kit 指的是实现该工具的软件组件。如今，rootkit 通常与恶意软件（例如特洛伊木马、蠕虫、病毒）相关联，这些恶意软件会向用户和其他系统进程隐藏其存在和操作。</p>
+<p>Rootkit 允许某人在计算机用户/所有者不知情的情况下维持对计算机的命令和控制。一旦安装了 rootkit，rootkit 的控制器就可以远程执行文件并更改主机上的系统配置。受感染计算机上的 rootkit 还可以访问日志文件并监视合法计算机所有者的使用情况。</p>
+<p>驻留内核的恶意软件：持续性的威胁；全部的访问权限（Full-Access）；禁用安全软件；安装后门；持续性访问。</p>
+<h3 id="1-2-挑战"><a href="#1-2-挑战" class="headerlink" title="1.2 挑战"></a>1.2 挑战</h3><p>为了持续和执行恶意活动，内核 rootkit 必须将代码注入内核的地址空间 。 因此，原则上，<strong>分析人员可以通过将可疑主机的内存快照与运行相同内核的干净、未受感染主机的内存快照进行比较来检测内核 rootkit 的存在</strong>。</p>
+<p>要实现刻意主机内存快照与运行相同内核的干净的主机内存快照作比较来检测rootkit的存在三个挑战。</p>
+<ul>
+<li><strong>一个运行相关内核并且保证干净、未受感染的主机</strong>。解决此问题的一般方法，利用云运行单个虚拟机镜像产生多个实例。<ul>
+<li>大量的多个VM使用相同的虚拟机镜像，并且假设多个VM被感染的很少。也就是说这产生的多个虚拟机实例中，多个VM是干净的未被感染的。</li>
+</ul>
+</li>
+<li><strong>内核内存快照很大。</strong>虽然可以将“原始”内存快照传输到单个点进行分析 ，但当要检查许多 VM 时，此收集的网络成本可能很高。</li>
+<li><strong>两个运行“相同内核”的虚拟机的内核内存快照可能会有很大差异。</strong>原因很多，但并不表明存在 rootkit 感染。  在两个快照中，由于不同的虚拟到物理内存映射、地址空间布局随机化 (ASLR)、半虚拟化相关的补丁和其他因素导致的例行差异使得识别作为内核恶意软件指标的差异变得非常具有挑战性 .</li>
+</ul>
+<p>之前的方法依赖于掌握的内核知识。</p>
+<p>Blacksheep 系统使用 Windows XP 和 7 内核的知识——例如，重要数据的身份和布局、内核入口点的位置以及可移植可执行文件 (PE) 文件的结构——以便它可以特别注意 Windows 关键组件的差异。 以这种方式弥合“语义鸿沟”是有效的，但存在三个实际弱点。</p>
+<ul>
+<li>第一，分析器变得专门化：它只在它有特殊（和准确）实现知识的内核上工作：windows XP/windows 7。</li>
+<li>第二，分析器变得更加复杂：它必须包含用于遍历单个数据结构、提取特定内核特征、为提取的特征分配权重等的代码。 </li>
+<li>第三，通过选择对内核的某些部分给予特别关注，分析器固有地假设恶意软件将如何与内核集成。 这些假设可能准确，也可能不准确，随着恶意软件的发展，分析器的假设可能会随着时间的推移变得不那么真实。</li>
+</ul>
+<h3 id="1-3-方法"><a href="#1-3-方法" class="headerlink" title="1.3 方法"></a>1.3 方法</h3><p>利用虚拟机集群，这些集群的虚拟机具有相似的配置和内核类型和版本，以检测其中存在被感染的虚拟机。</p>
+<p><img src="/2021/08/06/readme/image-20210728173853202-1627465135153.png" alt="image-20210728173853202"></p>
+<p>我们的方法不依赖于特定的恶意软件的知识。比如，除了假设恶意软件具有驻留在内核中，没有其他任何关于恶意代码是如何附加到内核的签名或假设。</p>
+<p>我们的方法使用了有限的内核知识来为集群中的每个VM获取该VM中代码的指纹。在这个过程中，只使用了一些低级的知识：页面全局目录的位置，允许定位内核的其余内存，以及处理器指令集的知识，允许反汇编内核代码。</p>
+<p>每个指纹都是一个散列集合，汇总了内核代码页的（标准化）内容：我们使用模糊散列，以便相似的页面内容映射到相似的散列值。 指纹在托管 VM 的物理机上生成，然后发送到中央分析服务器。  服务器不使用特定于内核的知识来执行其任务。 它通过首先执行特征对齐（识别在所有指纹上“对齐”的元素）来比较指纹； 然后将指纹放入可以计算距离的空间； 最后，指纹上的计算集群。 大多数虚拟机的指纹形成一个集群，代表群体中健康的成员。  位于主集群之外的指纹对应于具有异常内核的虚拟机，可能是受恶意软件感染的内核。</p>
+<p>在一个名为 Fluorescence 的工具中实施了我们的方法，并评估了它检测被真实内核 rootkit 感染的虚拟机的能力。 Fluorescence可以检查 Linux (3.13–4.15, x64) 和 Windows 7 (x64) 内核的虚拟机是否被感染。</p>
+<h3 id="1-4-贡献"><a href="#1-4-贡献" class="headerlink" title="1.4 贡献"></a>1.4 贡献</h3><p> <strong>首先，我们提出了一种新方法，用于检测运行相同内核的一组 VM 中的内核驻留恶意软件</strong>。 与以前需要详细了解被检查内核的方法不同，我们的方法<strong>使用有限的内核特定知识来构建指纹，而没有内核特定知识来分析指纹</strong>。 </p>
+<p>其次，我们描述了我们的方法在Fluorescence中的实现。 我们<strong>的实现表明我们的方法是通用的：Fluorescence适用于 Windows 和 Linux 内核</strong>，单个 Linux 代理就足以支持各种 Linux 内核版本。</p>
+<p> 第三，我们<strong>根据其检测能力和速度评估Fluorescence</strong>。 在我们的实验中，Fluorescence能够检测到我们的 VM 群中所有真实世界的内核 rootkit。 Fluorescence所需的时间对于定期（例如每天）扫描包含多达数百个 VM 的大型畜群而言是合理的。Fluorescence可以在不到 10 分钟的时间内分析 50 个宿主，在大约 60-80 分钟内分析 200 个宿主。</p>
+<h2 id="2-背景"><a href="#2-背景" class="headerlink" title="2 背景"></a>2 背景</h2><h3 id="2-1-VMI"><a href="#2-1-VMI" class="headerlink" title="2.1 VMI"></a>2.1 VMI</h3><p>虽然虚拟化确实依赖于硬件支持，但有一个软件组件。此软件组件称为管理程序或虚拟机监视器 (VMM)。该软件层位于硬件之上，并将 VM 暴露给来宾操作系统。这通常以两种配置之一完成。类型 1 管理程序（或裸机管理程序）直接在底层硬件上运行。Xen 管理程序是类型 1 管理程序的一个示例。另一方面，类型 2 管理程序（或托管管理程序）在操作系统中运行。在这种情况下，我们将运行 VMM 的操作系统称为主机操作系统。KVM 就是一个例子。有关两种配置的图表，请参见图 1。</p>
+<p><img src="/2021/08/06/readme/image-20210728174834407.png" alt="image-20210728174834407"></p>
+<p>当客户操作系统执行某些硬件未设计或未指示处理的操作时，VMM 将协助硬件并获得控制权。也就是说，VMM 可以对硬件进行编程，以确定它想要处理的客户操作系统的哪些动作以及它想要让硬件处理哪些动作。例如，每次来宾写入特定寄存器时，VMM 都可以对硬件进行编程以赋予其控制权。每当客户操作系统写入此寄存器时，硬件都会将控制权交给 VMM。我们将此称为 VMM 的陷阱。VMM 的这种能力支持 VMI。</p>
+<p>VMI 允许我们利用硬件和 VMM 来检查来宾。正如我们在上面了解到的，VMM 可以对硬件进行编程以捕获某些事件。这对于虚拟机内省很有价值，因为它允许我们捕获来宾可能采取的特定操作，并在那个时刻检查来宾的状态。这给我们带来了下一个优势：VMM 可以完全了解整个来宾状态。这包括 CPU、内存和任何设备（例如网卡、硬盘等）。最后，VMI 组件受益于与被检查环境的完全隔离。这使得检测或攻击检查组件变得困难，并减少了观察者对访客环境的影响。观察者效应描述了系统的任何观察者的侵入性。即使人们试图尽可能不引人注目，也总会有一些副作用。当观察者位于被监控系统内时，这种影响会被放大。</p>
+<h3 id="2-2-ssdeep"><a href="#2-2-ssdeep" class="headerlink" title="2.2 ssdeep"></a>2.2 ssdeep</h3><p>ssdeep 是一个用于计算上下文触发分段哈希（CTPH）的程序。CTPH 也称为模糊哈希，可以匹配具有同源性的输入。这些输入具有相同顺序的相同字节序列，尽管这些序列之间的字节在内容和长度上可能不同。</p>
+<p>CTPH 的完整解释可以在期刊数字调查中使用上下文触发分段散列识别几乎相同的文件中找到 。可以通过 Digital Forensic Research Workshop 会议获得本文的 免费版本，即使用上下文触发的分段散列识别几乎相同的文件的免费版本。</p>
+<p>它还提供了一个库 (libfuzzy) 来生成/比较模糊哈希。</p>
+<p>ssdeep 散列现在广泛用于简单的识别目的。（例如VirusTotal 中的基本属性部分）尽管可以使用“更好的模糊哈希”，但 ssdeep 仍然是主要选择之一，因为它的速度（现在大约是 TLSH 的两倍）并且是事实上的标准。</p>
+<h3 id="2-3-自动编码器"><a href="#2-3-自动编码器" class="headerlink" title="2.3 自动编码器"></a>2.3 自动编码器</h3><p>自动编码器是神经网络的一种，其基本思想就是直接使用一层或者多层的神经网络对输入数据进行映射，得到输出向量，作为从输入数据提取出的特征。传统的自动编码器一般用来数据降维或者特征学习，类似于PCA，但是自动编码器比PCA灵活的多，因为它既能表征线性变换又能表征非线性变换。自动编码器可以被看做是前馈网络的一个特例。基本的自编码器模型是一个简单的三层神经网络结构：一个输入层、一个隐藏层和一个输出层。其中输出层和输入层具有相同的维数。</p>
+<p>自编码器，它的输入输出是一致的，目标是使用稀疏的高阶特征重新组合来重构自己。自动编码器是一种数据压缩算法，其中数据的压缩和解压缩函数是数据相关的、有损的、从样本中自动学习。</p>
+<p>目前自编码器的两个主要用途就是降维、去噪和图像生成。</p>
+<h3 id="2-4-DBSCAN"><a href="#2-4-DBSCAN" class="headerlink" title="2.4 DBSCAN"></a>2.4 DBSCAN</h3><p>DBSCAN（Density-Based Spatial Clustering of Applications with Noise，具有噪声的基于密度的聚类方法）是一种基于密度的空间聚类算法。 该算法将具有足够密度的区域划分为簇，并在具有噪声的空间数据库中发现任意形状的簇，它将簇定义为密度相连的点的最大集合。<br>kmeans聚类算法只能处理球形的簇，也就是一个聚成实心的团（这是因为算法本身计算平均距离的局限）。但往往现实中还会有各种形状，环形和不规则形。DBSCAN算法能够比较好地解决这类问题。</p>
+<h2 id="3-设计"><a href="#3-设计" class="headerlink" title="3 设计"></a>3 设计</h2><ul>
+<li><strong>A.</strong> <strong>指纹提取</strong><ul>
+<li>获取内核代码页内容</li>
+<li>页面内容归一化</li>
+<li>精简内容-fuzzy hashing</li>
+</ul>
+</li>
+<li><strong>B.</strong> <strong>特征对齐</strong><ul>
+<li>简化指纹</li>
+<li>计算基准向量</li>
+<li>转换指纹为向量</li>
+</ul>
+</li>
+<li><strong>C.</strong> <strong>异常检测</strong><ul>
+<li>计算相似度矩阵</li>
+<li>采取集群分析</li>
+<li>采取自动编码器分析</li>
+</ul>
+</li>
+</ul>
+<p><img src="/2021/08/06/readme/image-20210728175417263.png" alt="image-20210728175417263"></p>
+<h3 id="3-1-指纹提取"><a href="#3-1-指纹提取" class="headerlink" title="3.1 指纹提取"></a>3.1 指纹提取</h3><p>Fluorescence代理与被监控的 VM 位于同一位置，为群中的每个 VM 生成一个指纹。  </p>
+<p>Fluorescence的特征对齐和聚类步骤对这些指纹进行操作，而不是内核内存快照，这大大减少了传输到中央服务器的数据量。 因此，指纹识别的关键目标是保留 VM 来宾内核代码内存的最重要特征，同时又要简洁。</p>
+<p>创建指纹包括四个步骤。</p>
+<ul>
+<li>第一，代理暂停目标虚拟机。 </li>
+<li>第二，代理使用虚拟机内省 (VMI) 来定位 VM 来宾的内核代码内存页面。 它将页面及其元数据复制到自己的内存中——一个快速的操作——然后恢复目标 VM。</li>
+<li>第三，代理对复制页面的内容进行规范化以减少预期的“噪音”来源，例如ASLR的影响。 代理有多种方法来规范化原始数据，从而产生每个页面的多个特征视图。</li>
+<li>第四，代理使用模糊散列来计算每个特征视图的散列。 模糊哈希函数为相似的输入生成相似的哈希值：页面 A 和 B 的哈希值之间的“距离”可用于估计页面 A 和 B 的全部内容的相似性。  VM 来宾内核的完整指纹是一个多重集，多重集的每个元素都是一个元组，描述内核代码内存的一个 4 KB 页。 元组的第一个元素是页面第一个特征视图的哈希值，第二个元素是第二个特征视图的哈希值，以及很快。 完成后，代理将指纹发送到 Fluorescence 的中央服务器进行分析。</li>
+</ul>
+<h4 id="3-1-1-获取内核代码页内容"><a href="#3-1-1-获取内核代码页内容" class="headerlink" title="3.1.1 获取内核代码页内容"></a>3.1.1 <strong>获取内核代码页内容</strong></h4><p>Fluorescence 在获取受监控 VM 的内核代码页时面临三个主要挑战。 </p>
+<p>第一个挑战是确保所有代码页都在内存中。 某些内核，包括 Windows 7 内核，可以将自己的代码页交换到磁盘； 磁盘上的页面无法通过 VMI 轻松读取，无法读取的页面会导致指纹不完整。 对于这种“可交换”内核， Fluorescence 开始指纹识别过程之前调用 VM内部的一个工具来固定所有内核的代码页。</p>
+<p>第二个挑战在于访问目标 VM 的内存。 使用 libVMI，这是一个流行的开源库，用于实现虚拟机自省。 </p>
+<p>第三个挑战是找到所有内核代码页。 为此，Fluorescence代理从内核页面全局目录 (KPGD) 开始，并对页表进行<strong>广度优先遍历</strong>以收集和复制内核的所有可执行页面。 KPGD 的位置特定于内核，但可以通过 libVMI（第 3.1 节）轻松获取。</p>
+<p><img src="/2021/08/06/readme/image-20210728182300711.png" alt="image-20210728182300711"></p>
+<h4 id="3-1-2-页面内容归一化"><a href="#3-1-2-页面内容归一化" class="headerlink" title="3.1.2 页面内容归一化"></a>3.1.2 页面内容归一化</h4><p><strong>目的</strong>：消除所有良性的差异；</p>
+<p><strong>原因</strong>：内存页中存在可以预期的“噪声”，例如ASLR；两个相同内核运行的虚拟机实例，内核内存页出现差异是存在的。</p>
+<p><strong>实现</strong>：</p>
+<p>例如使用<strong>数值小且唯一的常数</strong>替代<strong>已经解析过的引用；</strong></p>
+<p>Addr = Start Addr of a Object + <strong>Relative Offset</strong></p>
+<p>Capstone：反编译，寻找绝对地址和相对地址；</p>
+<p><img src="/2021/08/06/readme/image-20210728182246695.png" alt="image-20210728182246695"></p>
+<h4 id="3-1-3-精简内容-fuzzy-hashing"><a href="#3-1-3-精简内容-fuzzy-hashing" class="headerlink" title="3.1.3 精简内容-fuzzy hashing"></a>3.1.3 精简内容-fuzzy hashing</h4><p>最后，对代理从受监控的 VM 获得的每个页面的每个特征视图进行散列计算。 我们的实现使用 ssdeep，这是一个快速模糊哈希函数。  对于每个页面，代理将页面特征视图的哈希值收集到一个元组中。 然后它将元组收集到一个多组中，这是 VM 的完整指纹。</p>
+<p><strong>相似度</strong>：两个hash值之间，相似度越高代表其对应的页面内容越相似；</p>
+<p><strong>指纹</strong>：hash值的无序集合，总结了VM的内容特征。</p>
+<p><img src="/2021/08/06/readme/image-20210728182159337.png" alt="image-20210728182159337"></p>
+<h3 id="3-2-特征对齐"><a href="#3-2-特征对齐" class="headerlink" title="3.2 特征对齐"></a>3.2 特征对齐</h3><p><strong>目标</strong>：将页面的元素放入矩阵中，每一列代表一个特征；</p>
+<p><strong>步骤</strong>：</p>
+<ul>
+<li>简化指纹：通过删除代表所有 VM 中存在的内容的元组来简化指纹</li>
+<li>计算基准向量：计算一个基，它是一个向量，包含所有指纹中最具代表性的元素（元组）</li>
+<li>转换指纹为向量：将所有指纹转换为向量，通过将元素与基础匹配来对元素进行排序</li>
+</ul>
+<p><img src="/2021/08/06/readme/image-20210728182424130.png" alt="image-20210728182424130"></p>
+<h4 id="3-2-1-简化指纹"><a href="#3-2-1-简化指纹" class="headerlink" title="3.2.1 简化指纹"></a>3.2.1 简化指纹</h4><p><strong>原因</strong>：在所有VM中内容都一样的页面对于异常检测是无帮助的，所以应当直接从指纹中移除其对应的元组。</p>
+<p><strong>算法</strong>：</p>
+<ul>
+<li><p>i : 当前归一化的数量；</p>
+</li>
+<li><p>F：n个指纹的集合；</p>
+</li>
+<li><p>Fi : 集合F的第i个；</p>
+</li>
+<li><p>H : Fi的交集，即相同的元素；</p>
+</li>
+</ul>
+<p>遍历F和H（二重循环），将Fi中与Hi相同的元素移出。</p>
+<h4 id="3-2-2-计算基准向量"><a href="#3-2-2-计算基准向量" class="headerlink" title="3.2.2 计算基准向量"></a>3.2.2 计算基准向量</h4><p><strong>目的：</strong>通过一个basis vector，使得VM中相似的页面互相具有联系，指纹可以被比较，从而识别出异常值。</p>
+<p><strong>预先知识：</strong></p>
+<ul>
+<li><p>一个指纹的元素具有代表性：当它和其他每个指纹的该元素都相似（是否相似根据ssdeep计算的分数判断）； </p>
+</li>
+<li><p>basis内容：所有最具代表性的元素集合（长度至少为一个指纹的元素个数）；</p>
+</li>
+<li><p>两个指纹的元素相似度公式如下图：</p>
+</li>
+</ul>
+<p><img src="/2021/08/06/readme/image-20210728183649445.png" alt="image-20210728183649445"></p>
+<p><strong>算法（确定basis）:</strong></p>
+<ul>
+<li><p>1.初始化basis为0向量；</p>
+</li>
+<li><p>2.对每个指纹的每个元素e：</p>
+<ul>
+<li>a.寻找其它每个指纹中与e最相似（并且score&gt;0）的元素，并放入集合neighbors(e)，sim(e)=SUM(σ(e,ni))；</li>
+<li>b.将所有sim(e)中选择最大的，并将元素e放入basis向量，之后不再考虑n(e)集合中的元素；</li>
+</ul>
+</li>
+<li><p>3.重复步骤2。</p>
+</li>
+</ul>
+<h4 id="3-2-3-转换指纹为向量"><a href="#3-2-3-转换指纹为向量" class="headerlink" title="3.2.3 转换指纹为向量"></a>3.2.3 转换指纹为向量</h4><p><strong>算法:</strong></p>
+<ul>
+<li><p>1.计算一个二维矩阵T，每行代表一个指纹，列数与basis向量长度相同；</p>
+<ul>
+<li>每行从左到右代表性递减；</li>
+</ul>
+</li>
+<li><p>2.对一个指纹，例如要填从该指纹在矩阵中最左边的单元格，需要找到指纹中与basis最左侧元素相似度最高（并且score&gt;0）的元素，没有则置空；</p>
+</li>
+<li><p>3.重复步骤2。</p>
+</li>
+</ul>
+<h3 id="3-3-异常检测"><a href="#3-3-异常检测" class="headerlink" title="3.3 异常检测"></a>3.3 <strong>异常检测</strong></h3><p>在其中央服务器上，Fluorescence 执行两种分析来检测异常 VM。 第一个（第 2.3.1 节）基于深度学习，通过测量神经网络重建（编码）指纹的能力来检测异常。 与重建异常指纹相比，该网络能够更准确地重建“典型”指纹。 第二个（第 2.3.2 节）应用聚类算法来区分典型指纹（大集群，代表健康 VM）和非典型指纹（小集群，代表异常 VM）。 这两种算法具有不同的优点和缺点（第 2.3.3 节），但在实践中大体一致，因此每个算法都用于验证对方的结果。</p>
+<h4 id="3-3-1-计算相似度矩阵"><a href="#3-3-1-计算相似度矩阵" class="headerlink" title="3.3.1 计算相似度矩阵"></a>3.3.1 计算相似度矩阵</h4><p>为了准备异常检测，Fluorescence计算了一个新矩阵，称为 S（代表“相似性”），其中 T 的元组被相似性分数替换:</p>
+<p><img src="/2021/08/06/readme/image-20210728183839999.png" alt="image-20210728183839999"></p>
+<p>每个元组由其与基的相应元素的相似性表示，空单元格由 -1 表示。 这种转换原则上不是保持距离的，3 但它保留了指纹在实践中。 如果两个指纹在 T 中的特定维度（列）中“接近”基础，则它们在 S 中的那个维度上保持彼此接近。类似地，具有独特和/或稀有内容的指纹（即，在列中具有元组的指纹） 大多数指纹都没有的T）继续在S中区分。</p>
+<p><img src="/2021/08/06/readme/image-20210728183844880.png" alt="image-20210728183844880"></p>
+<h4 id="3-3-2-自动编码器-deep-learning"><a href="#3-3-2-自动编码器-deep-learning" class="headerlink" title="3.3.2 自动编码器-deep learning"></a>3.3.2 自动编码器-deep learning</h4><p> Fluorescence 检测异常 VM 的深度学习方法基于自动编码器。 自编码器的目的是以无监督的方式学习表示数据集的有效方法。 如图 2 所示，自动编码器包含一个编码器，它减少输入中的维数，以及一个解码器，它试图从其减少的表示中重建原始输入。 为了最小化输入和输出之间的误差，自编码器必须学会在编码时保留最大的信息。 输入数据集中的主要模式被学习并保留，因此，在“异常值”中发现的次要模式将丢失。</p>
+<p><strong>原因</strong>：基于自动编码器，能够更准确的重构典型的数据，相比异常的数据，从而识别出异常VM。</p>
+<p><strong>训练目标</strong>：使mse最小。</p>
+<ul>
+<li><p>encoder：减少input的维度，1/30，至少2个维度； </p>
+</li>
+<li><p>decoder：从减少维度的表示中重构出原始的输入；</p>
+</li>
+<li><p>训练完毕后，计算输入与输出的se（平方误差），并建模为正态分布，具有明显较大错误分数的虚拟机被识别为异常。</p>
+</li>
+<li><p>使用ADADELTA作为优化器（针对梯度下降算法提出的一种新型的适用于高维情况下学习率设置方法）。</p>
+</li>
+</ul>
+<p><img src="/2021/08/06/readme/image-20210728183921006.png" alt="image-20210728183921006"></p>
+<h4 id="3-3-3-Clustering"><a href="#3-3-3-Clustering" class="headerlink" title="3.3.3 Clustering"></a>3.3.3 Clustering</h4><p>基于密度的聚类方法-DBSCAN，相比k-means方法，不需要预先知道形成的簇的数量。</p>
+<p>代表两个 VM 的 S 的两个向量行之间的欧几里德距离 d 在 通常的方法：d(α,β) = q (Sα1−Sβ1)2+ (Sα2−Sβ2)2+···DBSCAN 需要两个参数：ε，是距离阈值，m，是最小数目 形成一个簇所需的点。 DBSCAN 通过选择一个未访问的数据点，向该点的 ε 内的所有相邻点“扩展”，然后从这些相邻点中的每一个递归扩展来构建集群。 如果一个点不是包含至少 m 个点的集群的成员，则该点被标记为异常值。  Fluorescence 的目标是将所有正常 VM 包含在一个或多个大型（多成员）集群中，并将异常 VM 包含在 (1) 包含在小型集群中或 (2) 归类为异常值。 为此，我们需要为 ε 和 m 选择合适的值。</p>
+<p><strong>两个参数</strong>:</p>
+<ul>
+<li><p>距离阈值: 100；</p>
+</li>
+<li><p>形成簇的点的最小数量：3；</p>
+</li>
+</ul>
+<p><strong>异常VM被识别出的两种情况：</strong></p>
+<ul>
+<li><p>被包含在小的簇；</p>
+</li>
+<li><p>被识别为离群点outlier；</p>
+</li>
+</ul>
+<p><img src="/2021/08/06/readme/image-20210728183934055.png" alt="image-20210728183934055"></p>
+<p><strong>Deep Learning</strong></p>
+<p><strong>优点:</strong></p>
+<ul>
+<li>不要求用户通过选择聚类参数来调整算法；</li>
+</ul>
+<p><strong>缺点</strong>:</p>
+<ul>
+<li><p>通常情况下，没有VM被感染，此时autoencoder可能过于敏感（FP）；</p>
+</li>
+<li><p>极少情况下，许多（10%）VM被感染，此时autoencoder可能学习到受感染的VM的模式，而变得不敏感（FN）；</p>
+</li>
+<li><p>Autoencoder不能报告哪些异常彼此相似。</p>
+</li>
+</ul>
+<p><strong>Clustering</strong></p>
+<p><strong>缺点</strong></p>
+<ul>
+<li>需要构建簇的阈值</li>
+</ul>
+<h2 id="4-评估"><a href="#4-评估" class="headerlink" title="4 评估"></a>4 评估</h2><ul>
+<li><p><strong>有效性</strong></p>
+<ul>
+<li>能否成功检测出VMs中受malware感染的VM？</li>
+<li>False Positive，False Negative</li>
+</ul>
+</li>
+<li><p><strong>性能</strong></p>
+<ul>
+<li>指纹生成步骤（暂停VM、归一化、fuzzy hashing）的时间开销？</li>
+<li>随着VM集群规模增大，Fluorescence表现如何？</li>
+</ul>
+</li>
+</ul>
+<h3 id="4-1-环境"><a href="#4-1-环境" class="headerlink" title="4.1 环境"></a>4.1 环境</h3><p>以下每个集群重复5次：</p>
+<p><strong>虚拟机集群</strong></p>
+<ul>
+<li><p>50个VM</p>
+</li>
+<li><p>Windows 7 / Linux 4.4</p>
+</li>
+<li><p>随机选择10个VM，记录log，并进行一些活动（open file、play games、use web browser download files、ran Apache or Nginx）</p>
+</li>
+</ul>
+<p><strong>Malware</strong></p>
+<ul>
+<li><p>随机选择种类安装；</p>
+</li>
+<li><p>Windows: Pitou、Rovnix(也称为Cidox)、ZeroAccess(也称为Sirefef)、Win32/Gapz和TDSS的两个变体TDL3和TDL4；</p>
+</li>
+<li><p>Linux：Diamorphine，Nurupo，Reptile。</p>
+</li>
+</ul>
+<p>我们进行了一组实验来测试 Fluorescence 识别感染了内核驻留恶意软件的虚拟机的能力。 对于每个测试，我们按如下方式设置羊群。 我们创建了 50 个虚拟机，运行 Windows 或 Linux。 为了干扰收集，我们随机选择了 10 个虚拟机，登录它们，并手动执行一些活动。 在 Windows 上，我们打开了一些文件，玩了一些小游戏，和/或使用网络浏览器下载了一些文件。 在 Linux 上，我们运行 Apache 或 nginx，然后从这些服务器下载随机文件。 然后我们在一些虚拟机上随机安装了恶意软件。 对于 Windows，我们选择了六个样本的子集进行注入（1-6 个样本）； 对于每个样本，随机选择要注入的实例数（1-4）； 随机选择一组要被感染的虚拟机（每个实例一个虚拟机）； 然后注入样品。 对于 Linux，我们遵循相同的过程，注入 1-3 种 rootkit 类型，每个类型有 1-4 个实例。</p>
+<h3 id="4-2-相似性矩阵"><a href="#4-2-相似性矩阵" class="headerlink" title="4.2 相似性矩阵"></a>4.2 相似性矩阵</h3><p>图4解释了这一结果。 它可视化了 S，即相似性矩阵，用于我们涉及所有六个 Windows 恶意软件样本的测试之一。 每行代表一个虚拟机，每列代表一个特征，即跨虚拟机的“匹配页面”。 为了在可视化中清晰起见，我们对行和列进行排序。 每个单元格根据其值着色：亮单元格包含高值（即，与相应的基值相似），暗单元格包含低值（与相应的基值不同）。 在可视化中，很明显受感染的 VM 在 S 中呈现出不同的模式，并且每种类型的恶意软件都有不同的签名。 这些是Fluorescence检测的模式。</p>
+<p><img src="/2021/08/06/readme/image-20210728190725719.png" alt="image-20210728190725719"></p>
+<p> 图 8 展示了我们的一项 Linux 测试的类似可视化，其中一项涉及我们的所有三个 Linux Rootkit。</p>
+<p><img src="/2021/08/06/readme/image-20210728190739111.png" alt="image-20210728190739111"></p>
+<h3 id="4-3-自动编码器"><a href="#4-3-自动编码器" class="headerlink" title="4.3 自动编码器"></a>4.3 自动编码器</h3><p>样本集：100个VM，其中3个受感染。</p>
+<p><img src="/2021/08/06/readme/image-20210728190747286.png" alt="image-20210728190747286"></p>
+<p>受感染VM：0~10个；</p>
+<p>正常的VM：90~100个；</p>
+<ul>
+<li><p>异常VM少于4%时，无FP和FN；</p>
+</li>
+<li><p>异常VM超过4%时，没那么高效；</p>
+</li>
+<li><p>更高的置信区间导致更多的FN，以及更少的FP；</p>
+</li>
+<li><p>那么如何确定一个更优的置信区间？</p>
+</li>
+</ul>
+<p><img src="/2021/08/06/readme/image-20210728190819982.png" alt="image-20210728190819982"></p>
+<p><strong>结论：</strong>当存在很少的异常时，自动编码器方法效果很好，这在实践中很可能是这种情况。 尽管有其局限性，但它广泛适用于检测未知异常。</p>
+<h3 id="4-4-Clustering-DBSCAN"><a href="#4-4-Clustering-DBSCAN" class="headerlink" title="4.4 Clustering(DBSCAN)"></a>4.4 <strong>Clustering(DBSCAN)</strong></h3><p>正确聚类，无FP和FN；</p>
+<p>图 7 显示了结果。 每种颜色/形状代表 DBSCAN 识别的一个集群。 绿点星团和蓝星团彼此相对靠近，但它们被识别为独立的星团，如放大视图所示。  蓝星集群中虚拟机数量最多，所有集群，因此该集群中的 VM 被识别为正常，而其他较小的集群代表不同类型的异常（即，VM 被不同的 Rootkit 家族感染）。  DBSCAN 的这种分析与基本事实相符。</p>
+<p><img src="/2021/08/06/readme/image-20210728190857632.png" alt="image-20210728190857632"></p>
+<h3 id="4-5-归一化的重要性"><a href="#4-5-归一化的重要性" class="headerlink" title="4.5 归一化的重要性"></a>4.5 归一化的重要性</h3><p><img src="/2021/08/06/readme/image-20210728190923848.png" alt="image-20210728190923848"></p>
+<p><img src="/2021/08/06/readme/image-20210728190929118.png" alt="image-20210728190929118"></p>
+<h3 id="4-6-生成指纹的开销"><a href="#4-6-生成指纹的开销" class="headerlink" title="4.6 生成指纹的开销"></a>4.6 <strong>生成指纹的开销</strong></h3><p>作者为一个Windows虚拟机和一个Linux虚拟机运行了指纹识别过程，并记录了该过程每一步的运行时间，重复10次取平均值，结果如表2。</p>
+<p><strong>Pin kernel code pages</strong></p>
+<ul>
+<li>Windows 7：内核开销增加4MB；</li>
+</ul>
+<p><strong>Copy</strong> <strong>kernel code pages</strong></p>
+<ul>
+<li>只有当Fluoro复制其内核代码页时，被指纹识别的虚拟机才会暂停。暂停时间都很短，不到一秒。</li>
+</ul>
+<p><strong>Normalization</strong></p>
+<ul>
+<li>Linux花费时间最多，也是必要的</li>
+</ul>
+<p>（依据5.3的测试）</p>
+<p><img src="/2021/08/06/readme/image-20210728191000839.png" alt="image-20210728191000839"> </p>
+<h3 id="4-7-可拓展性"><a href="#4-7-可拓展性" class="headerlink" title="4.7 可拓展性"></a>4.7 <strong>可拓展性</strong></h3><ul>
+<li><p>Blacksheep在一群Windows机器中寻找内核级异常，需要10分钟来比较两个1 GB的内存转储。</p>
+</li>
+<li><p>Fluorescence可以在至少50个虚拟机中搜索内核级异常。</p>
+</li>
+</ul>
+<p><img src="/2021/08/06/readme/image-20210729155134567.png" alt="image-20210729155134567"></p>
+<h2 id="5-安全性分析"><a href="#5-安全性分析" class="headerlink" title="5 安全性分析"></a>5 安全性分析</h2><p>本文有三个假设：</p>
+<ul>
+<li><p>首先，要在虚拟机中检测到的恶意软件不会危及（compromise）运行这些虚拟机的虚拟机监视器（VMM）。</p>
+</li>
+<li><p>第二，被监控的虚拟机的配置应该是相似的；</p>
+</li>
+<li><p>在一大群最初健康的虚拟机中，受恶意软件感染的虚拟机将是例外，而不是常规。</p>
+</li>
+</ul>
+<p>不支持JIT（Just-In-Time）-compiled的代码。</p>
+<h2 id="6-结论"><a href="#6-结论" class="headerlink" title="6 结论"></a>6 结论</h2><p><strong>Fluorescence能够有效的检测出真实世界中、驻留在内核的恶意软件在相似的VM的集群的存在；</strong></p>
+<ul>
+<li>Windows &amp; Linux</li>
+</ul>
+<p><strong>具有通用性</strong></p>
+<ul>
+<li><p>内存获取</p>
+</li>
+<li><p>归一化</p>
+</li>
+<li><p>Hashing</p>
+</li>
+<li><p>特征对齐</p>
+</li>
+<li><p>异常检测</p>
+</li>
+</ul>
+<p><strong>具有可拓展性</strong></p>
+<ul>
+<li><p>在简洁的指纹上操作</p>
+</li>
+<li><p>可以在60~80分钟内分析200个VM；</p>
+</li>
+</ul>
+<p>但是同时需要考虑几个问题：</p>
+<p>1.暂停VM，来获取内存快照，是否会拉低当前运行任务的效率</p>
+<p>2.按周期暂停VM,是否会造成攻击者的周期逃逸攻击</p>
+<p>3.VM中的代理是否被恶意控制</p>
+<p>4.VMI的行为是否会被攻击者洞悉，从而规避</p>
+<h2 id="7-参考资料"><a href="#7-参考资料" class="headerlink" title="7 参考资料"></a>7 参考资料</h2><p>[1].<a href="https://bedrocksystems.com/virtual-machine-introspection/" target="_blank" rel="noopener">https://bedrocksystems.com/virtual-machine-introspection/</a></p>
+<p>[2].<a href="https://ssdeep-project.github.io/ssdeep/index.html" target="_blank" rel="noopener">https://ssdeep-project.github.io/ssdeep/index.html</a></p>
+<p>[3].Li R, Du M, Johnson D, et al. Fluorescence: Detecting Kernel-Resident Malware in Clouds[C]//22nd International Symposium on Research in Attacks, Intrusions and Defenses ({RAID} 2019). 2019: 367-382.</p>
+<p>[4].Bianchi, Antonio, et al. “Blacksheep: Detecting compromised hosts in homogeneous crowds.” <em>Proceedings of the 2012 ACM conference on Computer and communications security</em>. 2012.</p>
+
+      
+      <!-- reward -->
+      
+      <div id="reward-btn">
+        打赏
+      </div>
+      
+    </div>
+    
+    
+      <!-- copyright -->
+      
+        <div class="declare">
+          <ul class="post-copyright">
+            <li>
+              <i class="ri-copyright-line"></i>
+              <strong>版权声明： </strong s>
+              本博客所有文章除特别声明外，均采用 <a href="https://www.apache.org/licenses/LICENSE-2.0.html" rel="external nofollow"
+                target="_blank">Apache License 2.0</a> 许可协议。转载请注明出处！
+            </li>
+          </ul>
+        </div>
+        
+    <footer class="article-footer">
+      
+          
+<div class="share-btn">
+      <span class="share-sns share-outer">
+        <i class="ri-share-forward-line"></i>
+        分享
+      </span>
+      <div class="share-wrap">
+        <i class="arrow"></i>
+        <div class="share-icons">
+          
+          <a class="weibo share-sns" href="javascript:;" data-type="weibo">
+            <i class="ri-weibo-fill"></i>
+          </a>
+          <a class="weixin share-sns wxFab" href="javascript:;" data-type="weixin">
+            <i class="ri-wechat-fill"></i>
+          </a>
+          <a class="qq share-sns" href="javascript:;" data-type="qq">
+            <i class="ri-qq-fill"></i>
+          </a>
+          <a class="douban share-sns" href="javascript:;" data-type="douban">
+            <i class="ri-douban-line"></i>
+          </a>
+          <!-- <a class="qzone share-sns" href="javascript:;" data-type="qzone">
+            <i class="icon icon-qzone"></i>
+          </a> -->
+          
+          <a class="facebook share-sns" href="javascript:;" data-type="facebook">
+            <i class="ri-facebook-circle-fill"></i>
+          </a>
+          <a class="twitter share-sns" href="javascript:;" data-type="twitter">
+            <i class="ri-twitter-fill"></i>
+          </a>
+          <a class="google share-sns" href="javascript:;" data-type="google">
+            <i class="ri-google-fill"></i>
+          </a>
+        </div>
+      </div>
+</div>
+
+<div class="wx-share-modal">
+    <a class="modal-close" href="javascript:;"><i class="ri-close-circle-line"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <div class="wx-qrcode">
+      <img src="//api.qrserver.com/v1/create-qr-code/?size=150x150&data=http://drag0nf1y.github.io/2021/08/06/readme/" alt="微信分享二维码">
+    </div>
+</div>
+
+<div id="share-mask"></div>
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/AI/" rel="tag">AI</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E7%A0%94%E7%A9%B6/" rel="tag">研究</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E8%AE%BA%E6%96%87/" rel="tag">论文</a></li></ul>
+
+
+    </footer>
+
+  </div>
+
+  
+  
+  <nav class="article-nav">
+    
+    
+      <a href="/2021/07/16/vTZ%20Virtualizing%20ARM%20TrustZone/" class="article-nav-link">
+        <strong class="article-nav-caption">下一篇</strong>
+        <div class="article-nav-title">vTZ Virtualizing ARM TrustZone</div>
+      </a>
+    
+  </nav>
+
+
+  
+
+  
+  
+<!-- valine评论 -->
+<div id="vcomments-box">
+    <div id="vcomments">
+    </div>
+</div>
+<script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+<script src='https://cdn.jsdelivr.net/npm/valine@1.3.10/dist/Valine.min.js'></script>
+<script>
+    new Valine({
+        el: '#vcomments',
+        app_id: '',
+        app_key: '',
+        path: window.location.pathname,
+        notify: 'false',
+        verify: 'false',
+        avatar: 'mp',
+        placeholder: '给我的文章加点评论吧~',
+        recordIP: true
+    });
+    const infoEle = document.querySelector('#vcomments .info');
+    if (infoEle && infoEle.childNodes && infoEle.childNodes.length > 0) {
+        infoEle.childNodes.forEach(function (item) {
+            item.parentNode.removeChild(item);
+        });
+    }
+</script>
+<style>
+    #vcomments-box {
+        padding: 5px 30px;
+    }
+
+    @media screen and (max-width: 800px) {
+        #vcomments-box {
+            padding: 5px 0px;
+        }
+    }
+
+    #vcomments-box #vcomments {
+        background-color: #fff;
+    }
+
+    .v .vlist .vcard .vh {
+        padding-right: 20px;
+    }
+
+    .v .vlist .vcard {
+        padding-left: 10px;
+    }
+</style>
+
+  
+
+  
+  
+  
+
+</article>
+</section>
+      <footer class="footer">
+  <div class="outer">
+    <ul class="list-inline">
+      <li>
+        &copy;
+        2019-2021
+        Drag0nf1y
+      </li>
+      <li>
+        
+      </li>
+    </ul>
+    <ul class="list-inline">
+      <li>
+        
+        
+        <span>
+  <i>PV:<span id="busuanzi_value_page_pv"></span></i>
+  <i>UV:<span id="busuanzi_value_site_uv"></span></i>
+</span>
+        
+      </li>
+      <li>
+        <!-- cnzz统计 -->
+        
+        <script type="text/javascript" src='https://s9.cnzz.com/z_stat.php?id=1278069914&amp;web_id=1278069914'></script>
+        
+      </li>
+    </ul>
+  </div>
+</footer>
+    <div class="to_top">
+        <div class="totop" id="totop">
+  <i class="ri-arrow-up-line"></i>
+</div>
+      </div>
+    </main>
+      <aside class="sidebar">
+        <button class="navbar-toggle"></button>
+<nav class="navbar">
+  
+  <div class="logo">
+    <a href="/"><img src="/images/ayer-side.svg" alt="Drag0nf1y"></a>
+  </div>
+  
+  <ul class="nav nav-main">
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/">主页</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/archives/">归档</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/categories/">分类</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/tags/">标签</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/categories/%E5%85%B6%E4%BB%96/">其他</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/categories/%E7%A0%94%E7%A9%B6/">研究</a>
+    </li>
+    
+    <li class="nav-item">
+      <a class="nav-item-link" href="/about/">关于我</a>
+    </li>
+    
+  </ul>
+</nav>
+<nav class="navbar navbar-bottom">
+  <ul class="nav">
+    <li class="nav-item">
+      
+      <a class="nav-item-link nav-item-search"  title="Search">
+        <i class="ri-search-line"></i>
+      </a>
+      
+      
+      <a class="nav-item-link" target="_blank" href="/atom.xml" title="RSS Feed">
+        <i class="ri-rss-line"></i>
+      </a>
+      
+    </li>
+  </ul>
+</nav>
+<div class="search-form-wrap">
+  <div class="local-search local-search-plugin">
+  <input type="search" id="local-search-input" class="local-search-input" placeholder="Search...">
+  <div id="local-search-result" class="local-search-result"></div>
+</div>
+</div>
+      </aside>
+      <div id="mask"></div>
+
+<!-- #reward -->
+<div id="reward">
+  <span class="close"><i class="ri-close-line"></i></span>
+  <p class="reward-p"><i class="ri-cup-line"></i>请我喝杯咖啡吧~</p>
+  <div class="reward-box">
+    
+    <div class="reward-item">
+      <img class="reward-img" src="/images/alipay.jpg">
+      <span class="reward-type">支付宝</span>
+    </div>
+    
+    
+    <div class="reward-item">
+      <img class="reward-img" src="/images/wechat.jpg">
+      <span class="reward-type">微信</span>
+    </div>
+    
+  </div>
+</div>
+      
+<script src="/js/jquery-2.0.3.min.js"></script>
+
+
+<script src="/js/jquery.justifiedGallery.min.js"></script>
+
+
+<script src="/js/lazyload.min.js"></script>
+
+
+<script src="/js/busuanzi-2.3.pure.min.js"></script>
+
+
+<script src="/js/share.js"></script>
+
+
+
+<script src="/fancybox/jquery.fancybox.min.js"></script>
+
+
+
+
+
+
+
+<script src="/js/tocbot.min.js"></script>
+
+<script>
+  // Tocbot_v4.7.0  http://tscanlin.github.io/tocbot/
+  tocbot.init({
+    tocSelector: '.tocbot',
+    contentSelector: '.article-entry',
+    headingSelector: 'h1, h2, h3, h4, h5, h6',
+    hasInnerContainers: true,
+    scrollSmooth: true,
+    scrollContainer:'main',
+    positionFixedSelector: '.tocbot',
+    positionFixedClass: 'is-position-fixed',
+    fixedSidebarOffset: 'auto',
+    onClick: (e) => {
+      $('.toc-link').removeClass('is-active-link');
+      $(`a[href=${e.target.hash}]`).addClass('is-active-link');
+      $(e.target.hash).scrollIntoView();
+      return false;
+    }
+  });
+</script>
+
+
+<script>
+  var ayerConfig = {
+    mathjax: false
+  }
+</script>
+
+
+<script src="/js/ayer.js"></script>
+
+
+<script src="https://cdn.jsdelivr.net/npm/jquery-modal@0.9.2/jquery.modal.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jquery-modal@0.9.2/jquery.modal.min.css">
+
+
+<!-- Root element of PhotoSwipe. Must have class pswp. -->
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    <!-- Background of PhotoSwipe. 
+         It's a separate element as animating opacity is faster than rgba(). -->
+    <div class="pswp__bg"></div>
+
+    <!-- Slides wrapper with overflow:hidden. -->
+    <div class="pswp__scroll-wrap">
+
+        <!-- Container that holds slides. 
+            PhotoSwipe keeps only 3 of them in the DOM to save memory.
+            Don't modify these 3 pswp__item elements, data is added later on. -->
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        <!-- Default (PhotoSwipeUI_Default) interface on top of sliding area. Can be changed. -->
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                <!--  Controls are self-explanatory. Order can be changed. -->
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" style="display:none" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                <!-- Preloader demo http://codepen.io/dimsemenov/pen/yyBWoR -->
+                <!-- element will get class pswp__preloader--active when preloader is running -->
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.css">
+<script src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"></script>
+
+<script>
+    function viewer_init() {
+        let pswpElement = document.querySelectorAll('.pswp')[0];
+        let $imgArr = document.querySelectorAll(('.article-entry img:not(.reward-img)'))
+
+        $imgArr.forEach(($em, i) => {
+            $em.onclick = () => {
+                // slider展开状态
+                // todo: 这样不好，后面改成状态
+                if (document.querySelector('.left-col.show')) return
+                let items = []
+                $imgArr.forEach(($em2, i2) => {
+                    let img = $em2.getAttribute('data-idx', i2)
+                    let src = $em2.getAttribute('data-target') || $em2.getAttribute('src')
+                    let title = $em2.getAttribute('alt')
+                    // 获得原图尺寸
+                    const image = new Image()
+                    image.src = src
+                    items.push({
+                        src: src,
+                        w: image.width || $em2.width,
+                        h: image.height || $em2.height,
+                        title: title
+                    })
+                })
+                var gallery = new PhotoSwipe(pswpElement, PhotoSwipeUI_Default, items, {
+                    index: parseInt(i)
+                });
+                gallery.init()
+            }
+        })
+    }
+    viewer_init()
+</script>
+
+
+
+
+<script type="text/javascript" src="https://js.users.51.la/20544303.js"></script>
+  </div>
+</body>
+
+</html>
